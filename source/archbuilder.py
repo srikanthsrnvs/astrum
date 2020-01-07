@@ -8,15 +8,13 @@ from neuralarch import NeuralArch
 
 class ArchBuilder:
 
-    def __init__(self, name, seed=0, min_hidden_layers=5, max_hidden_layers=10):
+    def __init__(self, name, seed=0):
 
         # Use a seed optionally to generate randomly
         if (seed != 0):
             assert(isinstance(seed, int))
             random.seed(seed)
 
-        self.min_hidden_layers = min_hidden_layers
-        self.max_hidden_layers = max_hidden_layers
         self.name = name
         self.possible_activations = [
             keras.activations.relu,
@@ -50,9 +48,12 @@ class ArchBuilder:
         self.built_models = []
         self.initial_models = []
 
-    def build_random_arch(self, identifier, input_shape, output_size, output_activation, min_layer_size=2, max_layer_size=1000):
+    def _build_conv_layer(self, type):
+        
 
-        num_hidden_layers = random.randint(self.min_hidden_layers, self.max_hidden_layers)
+    def build_random_arch(self, identifier, input_shape, output_size, output_activation, min_layer_size=2, max_layer_size=1000, plot=False):
+
+        num_hidden_layers = random.randint(1, 2)
         
         layer_dict = {}
         layer_list = [keras.layers.Flatten(input_shape=input_shape)]
@@ -60,9 +61,18 @@ class ArchBuilder:
         for layer in range(1, num_hidden_layers+1):
             layer_size = random.randint(min_layer_size, max_layer_size)
             layer_activation = random.choice(self.possible_activations)
-            layer_type = random.choice(self.possible_main_layer_types)
+            layer_type = None
 
-            layer_dict[layer] = {'size': layer_size, 'activation': layer_activation, 'type': layer_type} 
+            if layer_dict[-1]['type'] != 'dense':
+                layer_type = random.choice(self.possible_post_conv_layers)
+            else:
+                layer_type = random.choice(self.possible_main_layer_types)
+
+            if layer_type != 'dense':
+                layer_subtype = random.choice(self.possible_conv_layer_types)
+                layer_type = '{}_{}'.format(layer_type, layer_subtype)
+
+            layer_dict[layer] = {'size': layer_size, 'activation': layer_activation, 'type': layer_type}
             layer_list.append(keras.layers.Dense(layer_size, activation=layer_activation))
 
         layer_dict[num_hidden_layers+1] = {'size': output_size, 'activation': output_activation, 'type': 'Output'}
@@ -73,14 +83,15 @@ class ArchBuilder:
 
         model_genes = Genes(layer_dict, None)
 
-        keras.utils.plot_model(model, to_file='{}.png'.format(identifier), show_shapes=True)
+        if plot:
+            keras.utils.plot_model(model, to_file='{}.png'.format(identifier), show_shapes=True)
 
-        neural_arch = NeuralArch(model, model_genes, None)
+        neural_arch = NeuralArch(model, model_genes, None, identifier, 1)
 
         self.initial_models.append(neural_arch)
         self.built_models.append(neural_arch)
 
-        return NeuralArch(model, model_genes, None)
+        return neural_arch
 
 
     def build_child_arch(self):
