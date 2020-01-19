@@ -49,7 +49,7 @@ class ArchBuilder:
         self.initial_models = []
 
     def _build_conv_layer(self, type):
-        
+        pass
 
     def build_random_arch(self, identifier, input_shape, output_size, output_activation, min_layer_size=2, max_layer_size=1000, plot=False):
 
