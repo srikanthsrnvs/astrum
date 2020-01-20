@@ -5,7 +5,7 @@ import numpy as np
 
 class Breeder:
 
-    def __init__(self)
+    def __init__(self):
         # Create the neural network
         # Add randomness to action step
         pass
