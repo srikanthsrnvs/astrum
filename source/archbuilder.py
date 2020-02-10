@@ -48,7 +48,44 @@ class ArchBuilder:
         self.built_models = []
         self.initial_models = []
 
-    def _build_conv_layer(self, type):
+    def _build_conv_layer(self, type, activation, input_dims=None):
+
+        layer = None
+        filters = random.randint(1, 3)
+        kernel = random.randint(2, 5)
+
+        if type == 'conv_1d':
+            layer = keras.layers.Conv1D(filters, kernel, activation=activation, input_shape=input_dims)
+        elif type == 'conv_2d':
+            layer = keras.layers.Conv2D(filters, kernel, activation=activation, input_shape=input_dims)
+        else:
+            layer = keras.layers.Conv3D(filters, kernel, activation=activation, input_shape=input_dims)
+
+        return layer
+
+    def _build_post_conv_layer(self, type, pool_size):
+
+        layer = None
+
+        if type == 'max_pool_1d':
+            layer = keras.layers.MaxPool1D(pool_size=pool_size)
+        elif type == 'max_pool_2d':
+            layer = keras.layers.MaxPool2D(pool_size=pool_size)
+        elif type == 'max_pool_3d':
+            layer = keras.layers.MaxPool3D(pool_size=pool_size)
+        elif type == 'avg_pool_1d':
+            layer = keras.layers.AvgPool1D(pool_size=pool_size)
+        elif type == 'avg_pool_2d':
+            layer = keras.layers.AvgPool2D(pool_size=pool_size)
+        else:
+            layer = keras.layers.AvgPool3D(pool_size=pool_size)
+
+        return layer
+
+    def _set_possible_main_layer_types(self, input_dimension):
+        pass
+
+    def _set_possible_pooling_layer_types(self, input_shape):
         pass
 
     def build_random_arch(self, identifier, input_shape, output_size, output_activation, min_layer_size=2, max_layer_size=1000, plot=False):
@@ -56,24 +93,39 @@ class ArchBuilder:
         num_hidden_layers = random.randint(1, 2)
         
         layer_dict = {}
-        layer_list = [keras.layers.Flatten(input_shape=input_shape)]
+        layer_list = []
 
-        for layer in range(1, num_hidden_layers+1):
+        for layer_num in range(1, num_hidden_layers+1):
+
             layer_size = random.randint(min_layer_size, max_layer_size)
             layer_activation = random.choice(self.possible_activations)
             layer_type = None
+            layer = None
 
-            if layer_dict[-1]['type'] != 'dense':
+            # If theres no layers in the dictionary, return None. If there is, and isnt dense, we need to add a pooling layer
+            if layer_dict.get(layer_num-1, "none") != "dense":
                 layer_type = random.choice(self.possible_post_conv_layers)
+                pool_size = random.randint(2, 5)
+                layer = self._build_post_conv_layer(layer_type, pool_size=pool_size)
             else:
                 layer_type = random.choice(self.possible_main_layer_types)
 
             if layer_type != 'dense':
-                layer_subtype = random.choice(self.possible_conv_layer_types)
-                layer_type = '{}_{}'.format(layer_type, layer_subtype)
+                if len(layer_dict.keys()) == 0:
+                    print(layer_dict)
+                    layer = self._build_conv_layer(layer_type, layer_activation, input_dims=input_shape)
+                else:
+                    layer = self._build_conv_layer(layer_type, layer_activation)
 
-            layer_dict[layer] = {'size': layer_size, 'activation': layer_activation, 'type': layer_type}
-            layer_list.append(keras.layers.Dense(layer_size, activation=layer_activation))
+                layer_subtype = random.choice(self.possible_conv_layer_types)
+                layer_type = '{}_regular'.format(layer_type, layer_subtype)
+            
+            else:
+                layer_list.append(keras.layers.Flatten(input_shape=input_shape))
+                layer = keras.layers.Dense(layer_size, activation=layer_activation)
+
+            layer_dict[layer_num] = {'size': layer_size, 'activation': layer_activation, 'type': layer_type}
+            layer_list.append(layer)
 
         layer_dict[num_hidden_layers+1] = {'size': output_size, 'activation': output_activation, 'type': 'Output'}
 

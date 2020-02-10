@@ -6,7 +6,7 @@ from tensorflow.python import keras
 
 if __name__ == "__main__":
 
-    builder = ArchBuilder("v1", min_hidden_layers=1, max_hidden_layers=2)
+    builder = ArchBuilder("v1")
 
     good_models = []
     bad_models = []

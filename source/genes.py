@@ -34,22 +34,22 @@ class Genes:
                 keras.activations.selu,
                 keras.activations.sigmoid,
                 keras.activations.tanh
-            ]
-            self.possible_layer_types = [
-                'dense',
-                'conv_1d_transpose',
-                'conv_2d_transpose',
-                'conv_3d_transpose',
-                'conv_1d_regular',
-                'conv_2d_regular',
-                'conv_3d_regular',
-                'max_pool_1d',
-                'max_pool_2d',
-                'max_pool_3d',
-                'avg_pool_1d',
-                'avg_pool_2d',
-                'avg_pool_3d'
-            ]
+        ]
+        self.possible_layer_types = [
+            'dense',
+            'conv_1d_transpose',
+            'conv_2d_transpose',
+            'conv_3d_transpose',
+            'conv_1d_regular',
+            'conv_2d_regular',
+            'conv_3d_regular',
+            'max_pool_1d',
+            'max_pool_2d',
+            'max_pool_3d',
+            'avg_pool_1d',
+            'avg_pool_2d',
+            'avg_pool_3d'
+        ]
 
     def __str__(self):
         print("No. hidden layers: {} \n Layer information: {}".format(self.num_hidden_layers, self.layer_dict))
@@ -77,7 +77,7 @@ class Genes:
         #   [activations per layer]
         #   [layer types]
         # ]
-        vector = np.zeros((4,50))
+        vector = np.zeros((3,50))
         
         for layer in self.layer_dict.keys():
             vector[0,layer-1] = self.get_size_of_layer(layer)
