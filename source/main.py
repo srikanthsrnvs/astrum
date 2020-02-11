@@ -17,7 +17,7 @@ if __name__ == "__main__":
         (train_images, train_labels), (test_images, test_labels) = fashion_mnist.load_data()
 
         neural_arch = builder.build_random_arch("dense{}".format(arch), (28, 28), 10, keras.activations.softmax)
-
+        print(neural_arch.model.summary())
         neural_arch.set_train_data(train_images, train_labels)
         neural_arch.set_test_data(test_images, test_labels)
 
