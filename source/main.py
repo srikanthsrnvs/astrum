@@ -2,7 +2,17 @@ from archbuilder import ArchBuilder
 import tensorflow as tf
 import numpy as np
 from tensorflow.python import keras
+from generic_builder import GenericBuilder
+from neuralarch import NeuralArch
 
+
+def build_generic_model(type, input_shape, output_classes, train_data, test_data):
+    generic_builder = GenericBuilder(type, input_size, output_classes)
+
+    neural_arch = NeuralArch(generic_builder.model, None, None, "GenericModel", 1)
+
+    neural_arch.set_train_data(train_data)
+    
 
 if __name__ == "__main__":
 
