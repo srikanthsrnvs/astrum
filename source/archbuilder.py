@@ -28,10 +28,7 @@ class ArchBuilder:
             keras.activations.tanh
         ]
         self.possible_main_layer_types = [
-            'dense',
-            'conv_1d',
-            'conv_2d',
-            'conv_3d',
+            'dense'
         ]
         self.possible_conv_layer_types = [
             'transpose'
@@ -103,16 +100,15 @@ class ArchBuilder:
             layer = None
 
             # If theres no layers in the dictionary, return None. If there is, and isnt dense, we need to add a pooling layer
-            if layer_dict.get(layer_num-1, "none") != "dense":
+            if len(layer_dict.keys()) > 0 and layer_dict[layer_num-1]["type"] != "dense":
                 layer_type = random.choice(self.possible_post_conv_layers)
                 pool_size = random.randint(2, 5)
                 layer = self._build_post_conv_layer(layer_type, pool_size=pool_size)
             else:
                 layer_type = random.choice(self.possible_main_layer_types)
-
+                
             if layer_type != 'dense':
                 if len(layer_dict.keys()) == 0:
-                    print(layer_dict)
                     layer = self._build_conv_layer(layer_type, layer_activation, input_dims=input_shape)
                 else:
                     layer = self._build_conv_layer(layer_type, layer_activation)

@@ -16,6 +16,7 @@ class NeuralArch:
     def set_train_data(self, train_data, train_labels):
         self._train_data = train_data
         self._train_labels = train_labels
+        self.data_provided = True
 
     def set_test_data(self, test_data, test_labels):
         self._test_data = test_data
@@ -31,10 +32,14 @@ class NeuralArch:
             return
 
     def evaluate(self):
-        stats = self.model.evaluate(self._test_data, self._test_labels, verbose=2)
-        self.accuracy = stats[1]
-        self.loss = stats[0]
-        return stats
+        if self.data_provided:
+            stats = self.model.evaluate(self._test_data, self._test_labels, verbose=2)
+            self.accuracy = stats[1]
+            self.loss = stats[0]
+            return stats
+        else:
+            print("No training data set. Ensure that training data has been provided.") 
+            return
 
     def predict(self, data):
         return self.model.predict(data)
