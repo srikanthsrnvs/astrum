@@ -111,7 +111,6 @@ class ArchBuilder:
             layer_type = None
             layer = None
 
-<<<<<<< HEAD
             # If theres no layers in the dictionary, return None. If there is, and isnt dense, we need to add a pooling layer
             if len(layer_dict.keys()) > 0 and layer_dict[layer_num-1]["type"] != "dense":
                 layer_type = random.choice(self.possible_post_conv_layers)
@@ -124,20 +123,18 @@ class ArchBuilder:
                 if len(layer_dict.keys()) == 0:
                     layer = self._build_conv_layer(layer_type, layer_activation, input_dims=input_shape)
                 else:
-=======
-            # If no layers in the net, we are setting the first layer
-            if len(layer_dict.keys()) == 0:
+                    # If no layers in the net, we are setting the first layer
+                    if len(layer_dict.keys()) == 0:
 
-                layer_type = random.choice(self.possible_main_layer_types)
-                # If we got a conv, then we build the conv layer, else we build a dense layer.
-                if layer_type == 'conv_1d' or layer_type == 'conv_2d' or layer_type == 'conv_3d':
-                    layer_list.append(keras.layers.Reshape((28, 28, 1), input_shape=input_shape))
->>>>>>> 3b2c8f3bb055af5be97472a811cbf8ed16859006
-                    layer = self._build_conv_layer(layer_type, layer_activation)
-                    layer_type = '{}_regular'.format(layer_type)
-                else:
-                    layer_list.append(keras.layers.Flatten(input_shape=input_shape))
-                    layer = keras.layers.Dense(layer_size, activation=layer_activation)
+                        layer_type = random.choice(self.possible_main_layer_types)
+                        # If we got a conv, then we build the conv layer, else we build a dense layer.
+                        if layer_type == 'conv_1d' or layer_type == 'conv_2d' or layer_type == 'conv_3d':
+                            layer_list.append(keras.layers.Reshape((28, 28, 1), input_shape=input_shape))
+                            layer = self._build_conv_layer(layer_type, layer_activation)
+                            layer_type = '{}_regular'.format(layer_type)
+                        else:
+                            layer_list.append(keras.layers.Flatten(input_shape=input_shape))
+                            layer = keras.layers.Dense(layer_size, activation=layer_activation)
 
             # If there were layers, check if it was a conv
             else:

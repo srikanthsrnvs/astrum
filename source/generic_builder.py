@@ -12,11 +12,11 @@ class GenericBuilder:
         self.input_size = input_size
         self.output_classes = output_classes
 
-        if self.type == 'structured_classifier':
+        if self.type == 'structured_classification':
             pass
-        else if self.type == 'structured_predictor':
+        elif self.type == 'structured_prediction':
             pass
-        else:
+        elif self.type == 'image_classification':
             self.model = self.build_image_classifier()
 
 
