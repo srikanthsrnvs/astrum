@@ -30,13 +30,19 @@ def build_generic_model(type, urls):
 
         os.rename(filename, 'datasets/{}'.format(filename))
 
-    data_dir = tf.keras.utils.get_file(origin='/datasets',
-                                         fname='dataset',)
-    # data_dir = pathlib.Path(data_dir)
+   features = tfds.features.FeaturesDict({
+            "image": tfds.features.Image(shape=(_TILES_SIZE,) * 2 + (3,)),
+            "label": tfds.features.ClassLabel(
+                names=_CLASS_NAMES),
+            "filename": tfds.features.Text(),
+        })
 
-    CLASS_NAMES = np.array([item.name for item in data_dir.glob('*') if item.name != "LICENSE.txt"])
 
-    print(CLASS_NAMES)
+def get_dataset():
+    filename = 'my_train_dataset.csv'
+    generator = lambda: read_csv(filename)
+    return tf.data.Dataset.from_generator(
+        generator, (tf.float32, tf.int32), ((n_features,), ()))
 
     # generic_builder = GenericBuilder(type, input_size, output_classes)
 
