@@ -15,29 +15,6 @@ import requests, zipfile, io, re
 import shutil
 
 
-def build_generic_model(type, urls):
-
-    os.makedirs("datasets")
-
-    for url in urls:
-
-        r = requests.get(url)
-        f = io.BytesIO(r.content)
-        z = zipfile.ZipFile(f)
-        z.extractall()
-
-        filename = z.filelist[0].filename.strip('/')
-
-        os.rename(filename, 'datasets/{}'.format(filename))
-
-   features = tfds.features.FeaturesDict({
-            "image": tfds.features.Image(shape=(_TILES_SIZE,) * 2 + (3,)),
-            "label": tfds.features.ClassLabel(
-                names=_CLASS_NAMES),
-            "filename": tfds.features.Text(),
-        })
-
-
 def get_dataset():
     filename = 'my_train_dataset.csv'
     generator = lambda: read_csv(filename)
@@ -67,7 +44,7 @@ if __name__ == "__main__":
     url = options.url.split(',')
     job_type = options.type
 
-    build_generic_model(job_type, url)
+    
 
     
 
