@@ -116,6 +116,7 @@ class ImageClassifier:
 
         # img_size = int(max(cumalative_img_height/total_img_count,
         #                cumalative_img_width/total_img_count))
+        # TODO: Image size is constant here, need to make dynamic
         img_size = 224
 
         # Save all images by splitting into /test & /train
@@ -141,8 +142,8 @@ class ImageClassifier:
                 img.save('datasets/test/{}/{}'.format(key,
                                                       im['name']))
 
-            self.train_batch_size = min(16, 1)
-            self.test_batch_size = min(16, 1)
+            self.train_batch_size = min(16, train_img_count)
+            self.test_batch_size = min(16, test_img_count)
             self.train_img_count = train_img_count
             self.test_img_count = test_img_count
 
