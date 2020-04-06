@@ -1,21 +1,23 @@
+import random
+
+import numpy as np
 import tensorflow as tf
 from tensorflow.python import keras
-import random
-import numpy as np
 
 
 class Genes:
 
     def __init__(self, layer_dict=None, hyperparamters=None, vector=None):
-        
+
         if layer_dict is None and hyperparamters is None:
             self.layer_dict = {}
-            layer_sizes         =        vector[0:1,][0]
-            layer_activations   =        vector[1:2,][0]
-            layer_types         =        vector[2:3,][0]
+            layer_sizes = vector[0:1, ][0]
+            layer_activations = vector[1:2, ][0]
+            layer_types = vector[2:3, ][0]
 
             for index in range(0, len(layer_sizes)):
-                self.layer_dict[index+1] = {'type': layer_types[index], 'activation': layer_activations[index], 'size': layer_sizes[index]}
+                self.layer_dict[index+1] = {'type': layer_types[index],
+                                            'activation': layer_activations[index], 'size': layer_sizes[index]}
                 self.num_hidden_layers = len(self.layer_dict.keys())
                 self.hyperparamters = hyperparamters
 
@@ -25,15 +27,15 @@ class Genes:
             self.hyperparamters = hyperparamters
 
         self.possible_activations = [
-                keras.activations.relu,
-                keras.activations.softmax,
-                keras.activations.elu,
-                keras.activations.exponential,
-                keras.activations.hard_sigmoid,
-                keras.activations.linear,
-                keras.activations.selu,
-                keras.activations.sigmoid,
-                keras.activations.tanh
+            keras.activations.relu,
+            keras.activations.softmax,
+            keras.activations.elu,
+            keras.activations.exponential,
+            keras.activations.hard_sigmoid,
+            keras.activations.linear,
+            keras.activations.selu,
+            keras.activations.sigmoid,
+            keras.activations.tanh
         ]
         self.possible_layer_types = [
             'dense',
@@ -52,7 +54,8 @@ class Genes:
         ]
 
     def __str__(self):
-        print("No. hidden layers: {} \n Layer information: {}".format(self.num_hidden_layers, self.layer_dict))
+        print("No. hidden layers: {} \n Layer information: {}".format(
+            self.num_hidden_layers, self.layer_dict))
 
     def get_activation_of_layer(self, layer):
         return self.layer_dict[layer]['activation']
@@ -77,13 +80,11 @@ class Genes:
         #   [activations per layer]
         #   [layer types]
         # ]
-        vector = np.zeros((3,50))
-        
+        vector = np.zeros((3, 50))
+
         for layer in self.layer_dict.keys():
-            vector[0,layer-1] = self.get_size_of_layer(layer)
-            vector[1,layer-1] = self.get_encoded_activation_at_layer(layer)
-            vector[2,layer-1] = self.get_encoded_type_of_layer(layer)
+            vector[0, layer-1] = self.get_size_of_layer(layer)
+            vector[1, layer-1] = self.get_encoded_activation_at_layer(layer)
+            vector[2, layer-1] = self.get_encoded_type_of_layer(layer)
 
         return vector
-
-        

@@ -1,6 +1,6 @@
+import numpy as np
 import tensorflow as tf
 from tensorflow.python import keras
-import numpy as np
 
 
 class Breeder:

@@ -1,5 +1,6 @@
-import numpy as np
 import random
+
+import numpy as np
 
 
 class InvalidConvolutionTypeError(Exception):
@@ -23,8 +24,10 @@ class Preprocessor(object):
 
         input_dimensions = len(input_shape)
         if type == 'conv_1d':
-            self.X_train = self.X_train.reshape((self.X_train.shape[0],self.X_train.shape[1]))
-            self.training_set = (self.training_set[0].reshape((self.training_set[0].shape[0]*self.training_set[0].shape[1], num_channels)))
+            self.X_train = self.X_train.reshape(
+                (self.X_train.shape[0], self.X_train.shape[1]))
+            self.training_set = (self.training_set[0].reshape(
+                (self.training_set[0].shape[0]*self.training_set[0].shape[1], num_channels)))
         elif type == 'conv_2d':
             pass
         elif type == 'conv_3d':
