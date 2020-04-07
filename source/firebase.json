@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "astrumdashboard",
+  "private_key_id": "abe892c52ca67f19dc926a00cc43a337cd8667f0",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDAMYx3hdbjATRa\nV37Ixv0IyFS3jeSt38Y/S+ErF50D6MORBHlHqW1UU4tN4Z58n3HDmlZVT0wcRNHR\nbl3qyQWA2BxuxHugPgGNRNfueK8vWKAppaNnzDMarowvi2gKUoia+l3QYQMN0Kuw\nXEiCyfMyTWJGMeNun2wXVGYvNMMBEr4x0l/mfv8WgXPkjpjjZxfleZZ+UVOG+iUi\nGaPoGqSb5AzKd7J7WotJ9moI+ffI2qCZJZyihV0OResEO3IGoNL+xUS3+NtVbIUE\n4RoKRw8oSerO3IH4PxHiQ1+IVDWTWd28I3axnwgmRFUOrWEkleMz63WQQ2uHPK81\ngbYtv0sjAgMBAAECggEABjq05vzXYa/czrQjn7CqFo+eW1KwikgvU0bg1fY5Ix13\napW0CUlptJV+oDgYsckIisKlBgqAw4Z21yxrbobfHvV3j8mI3kE+6KFwxEHKH8/m\nD7jW1TBDqcY630xL7iW4WBmW/SrfyqIBppY0eB9r5VdSa5xbVu8ONaqzzdeOcymQ\nu5lTJd//91sPfJEc2XH19Yx4yc8iuZKqyfoF5+6yUkzAw+Q6G9iXJZBjOhF0bACX\nDe7T8IwlLas4MQp773+pBEuVUTLoTwJng1zrSJQCa7+wbw5IwWOnF7f+sBcK/OS2\nXQeNsY3/lz0ExMTTsFY0cG3Awoo4dmw1fwKMvWlibQKBgQD2XKOFYEwCqIsLzAEU\nRs8VCITYb5OXg9WM8VIL/z3qVHRAGJCjfPhwsLtSeeL7bZ5h/72kblWNfQYnhPBK\nibNhCZ+sHFqR75Hv2JQgmMxjuEsIuf8IoPc1GS1D4XpLsyI+aDI4FNG+kS3EJZvc\nopLA3kGtndEicF9uXAx4LweI3QKBgQDHtmdjC/8P3tMDcrp2D+6ihyz7zyg1NUBP\nZoh/EXbhKqThPvMXGYk2etYK/YCe8K0P/wl1b9pbRR07ZrTzoJG1iIczuHSL5MDo\n4XJ6W4ea+ctmZpHump7/wExP5/abht6Mf3q6gwxXRdWgTVPocAcZGVIkTwvyCb9Q\nfYmZg0rj/wKBgHgr+Be3QVyKmkjG2j/pylmYLjTlODlQNXrqu/reJnWHfK1HTkZx\nTz6o9rbkfbPnZLqo5PiwWUsLEVV1o0C4qqdK6ngp3IQTODymiJrd7dU2sGMxVxX+\nbpeYEFxsQBts5edLLDPu8+DhMFHdhom5Q5yQzbjCoqEJ74MFo498YVCBAoGAQenj\nyX7mGdjTECpHfDvZ6O5wXFOM07LVnN8cYcPj1oD6lhTuqksVTFPSXSI51ztcAxGL\nj6TxDnqLIVXOlzIBpUaASQOyA5HmUXZHEDcxVGbpSMzFkVia7ZIMHbtTWxVyUjCo\n0vH5mrxDu3qKHQcMcK44vB8StDmfWPN1/KKmjwUCgYAWzC8WnhsbZbllb/O5c92w\nHRXhEh+k2Y9AYXEyiakA4cOu97VctW/O8XrkPS22Jc+H8epocvYDmvN9GhlnHIGY\nq0fq3m78lrdx//TKRb9a/N7+GGQoPqomYhDRFLEswU+lG8smCdrsG43OoPMLi1jF\njRPZBM+4gkHISU7o6jLwTA==\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-a9922@astrumdashboard.iam.gserviceaccount.com",
+  "client_id": "118008943218956910272",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-a9922%40astrumdashboard.iam.gserviceaccount.com"
+}

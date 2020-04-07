@@ -14,6 +14,9 @@ from tensorflow.python.keras.optimizers import *
 from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
 
 from custom_lenet import CustomLeNet
+from firebase import FirebaseHelper
+
+BASE_URL = 'https://astrumdashboard.appspot.com'
 
 
 class ImageClassifier:
@@ -24,15 +27,34 @@ class ImageClassifier:
         self.job_id = job_id
         self.hyperparameters = {}
         self.output_classes = output_classes
+        self.firebase_helper = FirebaseHelper()
 
-    def _save(self):
-        # TODO: Need to save the model to cloud storage as well as locally and write to the users referece
-        pass
+    def __save(self):
+        self.model.save_weights(self.job_id+'.h5')
+        self.saved_model_location = self.firebase_helper.save_model(
+            self.job_id)
+        self.saved_logs_location = self.firebase_helper.save_logs(self.job_id)
+        self.saved_tb_logs_location = self.firebase_helper.save_tb_logs(self.job_id)
+        self.__notify_backend_for_completion()
 
-    def build_predictor(self):
-        # TODO: Need to use flask to programatically create an API endpoint where the user can send new images
-        # This method should return the API endpoint where the user can send urls for prediction
-        pass
+    def __notify_backend_for_completion(self):
+        requests.put(
+            BASE_URL+'/jobs/'+self.job_id,
+            json={
+                'model': self.saved_model_location,
+                'logs': self.saved_logs_location,
+                'tb_logs': self.saved_tb_logs_location,
+                'label_map': self.label_map
+            }
+        )
+        self.__cleanup()
+
+    def __cleanup(self):
+        shutil.rmtree('datasets')
+        shutil.rmtree(self.job_id+'_logs')
+        os.remove(self.job_id+'.h5')
+        os.remove(self.job_id+'_output.txt')
+        os.remove(self.job_id+'_tensorboard.zip')
 
     def build(self):
         self._prepare_data()
@@ -65,7 +87,7 @@ class ImageClassifier:
         )
 
         tensorboard_callback = keras.callbacks.TensorBoard(
-            log_dir=self.log_dir+'scalars/'+self.job_id)
+            log_dir=self.log_dir+'/scalars/')
 
         model.fit_generator(
             train_generator,
@@ -76,17 +98,18 @@ class ImageClassifier:
             callbacks=[tensorboard_callback]
         )
         self.model = model
-        self._save()
+        self.label_map = train_generator.class_indices
+        self.__save()
 
     def _prepare_hyperparameters(self):
         hyperparameters = {}
         hyperparameters['epochs'] = 100
-        hyperparameters['learning_rate'] = 0.01
+        hyperparameters['learning_rate'] = 0.1
         hyperparameters['loss'] = 'categorical_crossentropy'
         hyperparameters['momentum'] = 0.0
         hyperparameters['decay'] = 0.0
         hyperparameters['optimizer'] = SGD(
-            lr=hyperparameters['learning_rate'], momentum=hyperparameters['momentum'], decay=hyperparameters['decay'])
+            lr=hyperparameters['learning_rate'], momentum=hyperparameters['momentum'])
 
         self.hyperparameters = hyperparameters
 

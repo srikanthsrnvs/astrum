@@ -1,17 +1,10 @@
 import optparse
 import sys
 
+from firebase import FirebaseHelper
 from generic_builder import GenericBuilder
 
-
-def save_logs(path, tb_path):
-    # TODO: save the logs after the script terminates by uploading the log to storage and saving in DB, also save the tensorboard logs
-
-
 if __name__ == "__main__":
-
-    log = open('log.out', 'w+')
-    sys.stdout = log
 
     parser = optparse.OptionParser()
 
@@ -21,18 +14,14 @@ if __name__ == "__main__":
     parser.add_option('--type',
                       action="store", dest="type",
                       help="The type of network to build", default="")
-    parser.add_option('--jobid',
-                      action="store", dest="jobid",
-                      help="The jobid of the job", default="")
+    parser.add_option('--job_id',
+                      action="store", dest="job_id",
+                      help="The job_id of the job", default="")
     options, args = parser.parse_args()
 
     urls = options.urls.split(',')
     job_type = options.type
     job_id = options.job_id
-    log_dir = 'logs/'
-    builder = GenericBuilder(job_type, len(urls), urls, job_id, log_dir)
+    log_dir = job_id+'_logs/'
+    builder = GenericBuilder(job_type, len(urls), job_id, log_dir, urls=urls)
     builder.build()
-
-    log.close()
-
-    save_logs('log.out', log_dir)
