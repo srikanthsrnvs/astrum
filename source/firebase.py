@@ -3,7 +3,7 @@ import uuid
 from zipfile import ZipFile
 
 import firebase_admin
-from firebase_admin import credentials, storage
+from firebase_admin import credentials, storage, db
 
 
 class FirebaseHelper:
@@ -14,8 +14,10 @@ class FirebaseHelper:
             primary_bucket = 'astrumdashboard.appspot.com'
             cred = credentials.Certificate('firebase.json')
             firebase_admin.initialize_app(cred, {
-                'storageBucket': 'astrumdashboard.appspot.com'
+                'storageBucket': 'astrumdashboard.appspot.com',
+                "databaseURL": "https://astrumdashboard.firebaseio.com/"
             })
+            self.db = db
             self.bucket = storage.bucket()
 
     instance = None
@@ -53,3 +55,26 @@ class FirebaseHelper:
         blob.upload_from_filename(job_id+'_output.txt')
         print("Logs uploaded")
         return blob.public_url
+
+    def get_job_data(self, job_id):
+        job_data = self.instance.db.reference('/jobs/'+job_id).get()
+        dataset_id = job_data.get('dataset', "")
+        dataset_data = self.instance.db.reference('/datasets/'+dataset_id).get()
+        urls = []
+
+        for child in dataset_data['child_datasets']:
+            urls.append(child['link'])
+
+        print(urls)
+
+        return job_data, urls
+
+    def pop_job(self, job):
+        self.instance.db.reference('/jobs/{}/status'.format(job)).set("training")
+        jobs = self.get_jobs_enqeued()
+        jobs.remove(job)
+        self.instance.db.reference('/job_queue').set(jobs)
+
+    def get_jobs_enqeued(self):
+        jobs = self.instance.db.reference('/job_queue').get()
+        return jobs
