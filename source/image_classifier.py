@@ -30,7 +30,7 @@ class ImageClassifier:
         self.firebase_helper = FirebaseHelper()
 
     def __save(self):
-        self.model.save_weights(self.job_id+'.h5')
+        self.model.save('{}.h5'.format(self.job_id))
         self.saved_model_location = self.firebase_helper.save_model(
             self.job_id)
         self.saved_logs_location = self.firebase_helper.save_logs(self.job_id)
@@ -44,7 +44,8 @@ class ImageClassifier:
                 'model': self.saved_model_location,
                 'logs': self.saved_logs_location,
                 'tb_logs': self.saved_tb_logs_location,
-                'label_map': self.label_map
+                'label_map': self.label_map,
+                'status': 2
             }
         )
         self.__cleanup()

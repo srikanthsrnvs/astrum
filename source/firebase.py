@@ -3,7 +3,7 @@ import uuid
 from zipfile import ZipFile
 
 import firebase_admin
-from firebase_admin import credentials, storage, db
+from firebase_admin import credentials, db, storage
 
 
 class FirebaseHelper:
@@ -59,22 +59,42 @@ class FirebaseHelper:
     def get_job_data(self, job_id):
         job_data = self.instance.db.reference('/jobs/'+job_id).get()
         dataset_id = job_data.get('dataset', "")
-        dataset_data = self.instance.db.reference('/datasets/'+dataset_id).get()
+        dataset_data = self.instance.db.reference(
+            '/datasets/'+dataset_id).get()
         urls = []
 
         for child in dataset_data['child_datasets']:
             urls.append(child['link'])
 
-        print(urls)
-
         return job_data, urls
 
+    def get_file(self, link, destination_file_name):
+        # bucket_name = "your-bucket-name"
+        # source_blob_name = "storage-object-name"
+        # destination_file_name = "local/path/to/file"
+
+        file_dir = link.split('/')[-2]
+        file_name = link.split('/')[-1]
+        blob = self.instance.bucket.blob('{}/{}'.format(file_dir, file_name))
+        blob.download_to_filename(destination_file_name)
+
     def pop_job(self, job):
-        self.instance.db.reference('/jobs/{}/status'.format(job)).set("training")
+        self.instance.db.reference('/jobs/'+job+'/status').set(1)
         jobs = self.get_jobs_enqeued()
         jobs.remove(job)
         self.instance.db.reference('/job_queue').set(jobs)
 
+    def pop_prediction(self, job):
+        self.instance.db.reference('/jobs/'+job+'/status').set(3)
+        builders_enqueued = self.get_prediction_builders_enqeued()
+        builders_enqueued.remove(job)
+        self.instance.db.reference('/prediction_queue').set(builders_enqueued)
+
     def get_jobs_enqeued(self):
         jobs = self.instance.db.reference('/job_queue').get()
         return jobs
+
+    def get_prediction_builders_enqeued(self):
+        prediction_builder_jobs = self.instance.db.reference(
+            '/prediction_queue').get()
+        return prediction_builder_jobs
