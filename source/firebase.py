@@ -1,6 +1,7 @@
 import os
 import uuid
 from zipfile import ZipFile
+from job import Job
 
 import firebase_admin
 from firebase_admin import credentials, db, storage
@@ -58,15 +59,12 @@ class FirebaseHelper:
 
     def get_job_data(self, job_id):
         job_data = self.instance.db.reference('/jobs/'+job_id).get()
+        job_data['job_id'] = job_id
         dataset_id = job_data.get('dataset', "")
         dataset_data = self.instance.db.reference(
             '/datasets/'+dataset_id).get()
-        urls = []
-
-        for child in dataset_data['child_datasets']:
-            urls.append(child['link'])
-
-        return job_data, urls
+        job = Job(dataset_data, job_data)
+        return job
 
     def get_file(self, link, destination_file_name):
         # bucket_name = "your-bucket-name"
@@ -83,18 +81,7 @@ class FirebaseHelper:
         jobs = self.get_jobs_enqeued()
         jobs.remove(job)
         self.instance.db.reference('/job_queue').set(jobs)
-
-    def pop_prediction(self, job):
-        self.instance.db.reference('/jobs/'+job+'/status').set(3)
-        builders_enqueued = self.get_prediction_builders_enqeued()
-        builders_enqueued.remove(job)
-        self.instance.db.reference('/prediction_queue').set(builders_enqueued)
-
+        
     def get_jobs_enqeued(self):
         jobs = self.instance.db.reference('/job_queue').get()
         return jobs
-
-    def get_prediction_builders_enqeued(self):
-        prediction_builder_jobs = self.instance.db.reference(
-            '/prediction_queue').get()
-        return prediction_builder_jobs

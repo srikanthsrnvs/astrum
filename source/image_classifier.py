@@ -4,7 +4,7 @@ import random
 import re
 import shutil
 import zipfile
-
+from job import Job
 import numpy as np
 import requests
 import tensorflow as tf
@@ -21,25 +21,23 @@ BASE_URL = 'https://astrumdashboard.appspot.com'
 
 class ImageClassifier:
 
-    def __init__(self, urls, output_classes, job_id, log_dir):
-        self.urls = urls
+    def __init__(self, job, log_dir):
         self.log_dir = log_dir
-        self.job_id = job_id
+        self.job = job
         self.hyperparameters = {}
-        self.output_classes = output_classes
         self.firebase_helper = FirebaseHelper()
 
     def __save(self):
-        self.model.save('{}.h5'.format(self.job_id))
+        self.model.save('{}.h5'.format(self.job.id))
         self.saved_model_location = self.firebase_helper.save_model(
-            self.job_id)
-        self.saved_logs_location = self.firebase_helper.save_logs(self.job_id)
-        self.saved_tb_logs_location = self.firebase_helper.save_tb_logs(self.job_id)
+            self.job.id)
+        self.saved_logs_location = self.firebase_helper.save_logs(self.job.id)
+        self.saved_tb_logs_location = self.firebase_helper.save_tb_logs(self.job.id)
         self.__notify_backend_for_completion()
 
     def __notify_backend_for_completion(self):
         requests.put(
-            BASE_URL+'/jobs/'+self.job_id,
+            BASE_URL+'/jobs/'+self.job.id,
             json={
                 'model': self.saved_model_location,
                 'logs': self.saved_logs_location,
@@ -51,11 +49,11 @@ class ImageClassifier:
         self.__cleanup()
 
     def __cleanup(self):
-        shutil.rmtree('datasets')
-        shutil.rmtree(self.job_id+'_logs')
-        os.remove(self.job_id+'.h5')
-        os.remove(self.job_id+'_output.txt')
-        os.remove(self.job_id+'_tensorboard.zip')
+        shutil.rmtree(self.job.filename)
+        shutil.rmtree(self.job.id+'_logs')
+        os.remove(self.job.id+'.h5')
+        os.remove(self.job.id+'_output.txt')
+        os.remove(self.job.id+'_tensorboard.zip')
 
     def build(self):
         self._prepare_data()
@@ -76,13 +74,13 @@ class ImageClassifier:
         )
 
         train_generator = train_datagen.flow_from_directory(
-            'datasets/train',
+            self.job.filename+'/train',
             target_size=(self.input_size[0], self.input_size[1]),
             batch_size=self.train_batch_size
         )
 
         validation_generator = test_datagen.flow_from_directory(
-            'datasets/test',
+            self.job.filename+'/test',
             target_size=(self.input_size[0], self.input_size[1]),
             batch_size=self.test_batch_size
         )
@@ -115,24 +113,26 @@ class ImageClassifier:
         self.hyperparameters = hyperparameters
 
     def _prepare_data(self):
-        os.makedirs("datasets")
+        
         total_img_count = 0
         cumalative_img_height = 0
         cumalative_img_width = 0
         imgs = {}
 
-        for url in self.urls:
-            r = requests.get(url)
-            f = io.BytesIO(r.content)
-            z = zipfile.ZipFile(f)
-            z.extractall()
-            filename = z.filelist[0].filename.strip('/')
-            path = 'datasets/'+filename
-            os.rename(filename, path)
-            imgs[filename] = []
+        r = requests.get(self.job.download_link)
+        f = io.BytesIO(r.content)
+        z = zipfile.ZipFile(f)
+        z.extractall()
+        filename = z.filelist[0].filename.strip('/')
+        self.job.set_filename(filename)
+
+        for folder in os.listdir(filename):
+            path = filename+'/'+folder
+            imgs[folder] = []
             for img_name in os.listdir(path):
+                # TODO: Error handling if a file is not an image
                 img = Image.open(os.path.join(path, img_name))
-                imgs[filename].append({'image': img, 'name': img_name})
+                imgs[folder].append({'image': img, 'name': img_name})
                 total_img_count += 1
                 img_height, img_width = img.size
                 cumalative_img_height += img_height
@@ -147,8 +147,8 @@ class ImageClassifier:
         train_img_count = 0
         test_img_count = 0
         for key, img_data in imgs.items():
-            os.makedirs('datasets/train/'+key)
-            os.makedirs('datasets/test/'+key)
+            os.makedirs(filename+'/train/'+key)
+            os.makedirs(filename+'/test/'+key)
             # Reshape all images
             dataset_size = len(img_data)
             split = int(dataset_size * 0.7)
@@ -158,19 +158,19 @@ class ImageClassifier:
             for im in train_imgs:
                 train_img_count += 1
                 img = im['image'].resize((img_size, img_size))
-                img.save('datasets/train/{}/{}'.format(key,
+                img.save(filename+'/train/{}/{}'.format(key,
                                                        im['name']))
             for im in test_imgs:
                 test_img_count += 1
                 img = im['image'].resize((img_size, img_size))
-                img.save('datasets/test/{}/{}'.format(key,
+                img.save(filename+'/test/{}/{}'.format(key,
                                                       im['name']))
-
-            self.train_batch_size = min(16, train_img_count)
-            self.test_batch_size = min(16, test_img_count)
-            self.train_img_count = train_img_count
-            self.test_img_count = test_img_count
-
-            self.input_size = (img_size, img_size, 3)
             # cleanup
-            shutil.rmtree('datasets/'+key)
+            shutil.rmtree(filename+'/'+key)
+
+        self.train_batch_size = min(16, train_img_count)
+        self.test_batch_size = min(16, test_img_count)
+        self.train_img_count = train_img_count
+        self.test_img_count = test_img_count
+        self.input_size = (img_size, img_size, 3)
+        self.output_classes = len(imgs.keys())

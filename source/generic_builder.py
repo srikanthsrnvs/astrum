@@ -1,24 +1,23 @@
 from image_classifier import ImageClassifier
-
+from object_detector import ObjectDetector
 
 class GenericBuilder:
 
-    def __init__(self, job_type, output_classes, job_id, log_dir, urls=[]):
-        self.job_type = job_type
+    def __init__(self, job, log_dir):
         self.log_dir = log_dir
-        self.output_classes = output_classes
-        self.urls = urls
-        self.job_id = job_id
-        if self.job_type == 'image_classification':
-            self.network = ImageClassifier(
-                urls, output_classes, job_id, log_dir)
-        elif self.job_type == 'structured_prediction':
+        self.job = job
+
+        if self.job.type == 'image_classification':
+            self.network = ImageClassifier(self.job, self.log_dir)
+        elif self.job.type == 'object_detection':
+            self.network = ObjectDetector(self.job, log_dir)
+        elif self.job.type == 'structured_prediction':
             # TODO: Structured data predictor should be built
             pass
-        elif self.job_type == 'structured_classification':
+        elif self.job.type == 'structured_classification':
             # TODO: Structured classifier should be built
             pass
-        elif self.job_type == 'custom':
+        elif self.job.type == 'custom':
             # TODO: Custom built nn should be built
             pass
         else:

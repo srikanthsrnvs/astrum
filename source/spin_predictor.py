@@ -19,19 +19,15 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 @app.route('/predict/<job_id>', methods=['POST'])
 def predict(job_id):
 
-    job_data = FirebaseHelper().get_job_data(job_id)[0]
-    job_type = job_data['type']
-    if job_type == 'image_classification':
+    job = FirebaseHelper().get_job_data(job_id)
+    if job.type == 'image_classification' or 'object_detection':
 
         img = request.files.get('image', "")
         if not img:
             return jsonify({'error': "No image was provided"}), 400
 
-        label_map = dict((v, k) for k, v in job_data['label_map'].items())
-        model_location = job_data['model']
-
-        predictor = Predictor(model_location, job_id,
-                              job_type, label_map=label_map)
+        predictor = Predictor(job)
+        print("Predictor initialized")
         return predictor.predict(img)
 
 

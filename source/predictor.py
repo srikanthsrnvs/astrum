@@ -16,30 +16,40 @@ from pool_helper import PoolHelper
 
 class Predictor:
 
-    def __init__(self, model_path, job_id, job_type, label_map=[]):
+    def __init__(self, job):
 
-        self.job_type = job_type
+        self.job = job
 
-        if job_type == 'image_classification':
+        if self.job.type == 'image_classification':
             home_dir = str(Path.home())
             models_dir = home_dir + '/models/'
-            model_local_location = models_dir + job_id
-
-            FirebaseHelper().get_file(model_path, model_local_location)
+            model_local_location = models_dir + self.job.id
+            if not Path(model_local_location).is_file():
+                FirebaseHelper().get_file(self.job.model, model_local_location)
             self.model = load_model(model_local_location, custom_objects={
                                     'PoolHelper': PoolHelper, 'LRN': LRN})
-            self.label_map = label_map
+            self.label_map = self.job.label_map
 
-        elif job_type == 'structured_classification':
+        elif self.job.type == 'object_detection':
+            home_dir = str(Path.home())
+            models_dir = home_dir + '/models/'
+            model_local_location = models_dir + self.job.id
+            if not Path(model_local_location).is_file():
+                FirebaseHelper().get_file(self.job.model, model_local_location)
+            self.model = load_model(model_local_location, custom_objects={
+                                    'PoolHelper': PoolHelper, 'LRN': LRN})
+            self.label_map = self.job.label_map
+
+        elif self.job.type == 'structured_classification':
             pass
-        elif job_type == 'structured_prediction':
+        elif self.job.type == 'structured_prediction':
             pass
-        elif job_type == 'custom':
+        elif self.job.type == 'custom':
             pass
 
-    def predict(self, image):
-        if self.job_type == 'image_classification':
-            img = Image.open(image)
+    def predict(self, input_data):
+        if self.job.type == 'image_classification':
+            img = Image.open(input_data)
             img = img.resize((224, 224))
             img_tensor = (keras_image.img_to_array(img))/255.
             img_tensor = np.expand_dims(img_tensor, axis=0)
@@ -47,3 +57,16 @@ class Predictor:
             confidence = "{:.2f}".format(np.max(prediction))
             class_prediction = self.label_map[np.argmax(prediction)]
             return jsonify({"prediction": class_prediction, 'confidence': confidence}), 200
+
+        elif self.job.type == 'object_detection':
+            img = Image.open(input_data)
+            img = img.resize((224, 224))
+            img_tensor = (keras_image.img_to_array(img))/255.
+            img_tensor = np.expand_dims(img_tensor, axis=0)
+            prediction = self.model.predict(img_tensor)
+            confidence_dict = {}
+            print(prediction[0])
+            for index in range(0, len(prediction[0])):
+                class_name = self.label_map[index]
+                confidence_dict[class_name] = "{:.2f}".format(prediction[0][index])
+            return jsonify({'predictions': confidence_dict}), 200

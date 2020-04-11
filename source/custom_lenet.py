@@ -20,12 +20,13 @@ from pool_helper import PoolHelper
 
 class CustomLeNet:
 
-    def __init__(self, input_shape, output_classes, optimizer, loss, weights_path=''):
+    def __init__(self, input_shape, output_classes, optimizer, output_activation, loss, weights_path=''):
         self.input_shape = input_shape
         self.output_classes = output_classes
         self.weights_path = weights_path
         self.optimizer = optimizer
         self.loss = loss
+        self.output_activation = output_activation
         self.model = self.build_lenet()
 
     def build_lenet(self):
@@ -129,7 +130,7 @@ class CustomLeNet:
         loss1_drop_fc = Dropout(rate=0.7)(loss1_fc)
         loss1_classifier = Dense(self.output_classes, name='loss1/classifier',
                                  kernel_regularizer=l2(0.0002))(loss1_drop_fc)
-        loss1_classifier_act = Activation('softmax')(loss1_classifier)
+        loss1_classifier_act = Activation(self.output_activation)(loss1_classifier)
 
         inception_4b_1x1 = Conv2D(160, (1, 1), padding='same', activation='relu',
                                   name='inception_4b/1x1', kernel_regularizer=l2(0.0002))(inception_4a_output)
@@ -204,7 +205,7 @@ class CustomLeNet:
         loss2_drop_fc = Dropout(rate=0.7)(loss2_fc)
         loss2_classifier = Dense(self.output_classes, name='loss2/classifier',
                                  kernel_regularizer=l2(0.0002))(loss2_drop_fc)
-        loss2_classifier_act = Activation('softmax')(loss2_classifier)
+        loss2_classifier_act = Activation(self.output_activation)(loss2_classifier)
 
         inception_4e_1x1 = Conv2D(256, (1, 1), padding='same', activation='relu',
                                   name='inception_4e/1x1', kernel_regularizer=l2(0.0002))(inception_4d_output)
@@ -282,7 +283,7 @@ class CustomLeNet:
         loss3_classifier = Dense(self.output_classes, name='loss3/classifier',
                                  kernel_regularizer=l2(0.0002))(pool5_drop_7x7_s1)
         loss3_classifier_act = Activation(
-            'softmax', name='prob')(loss3_classifier)
+            self.output_activation, name='prob')(loss3_classifier)
 
         avg = Average()(
             [loss1_classifier_act, loss2_classifier_act, loss3_classifier_act])
