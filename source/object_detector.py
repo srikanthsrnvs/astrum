@@ -72,6 +72,7 @@ class ObjectDetector:
 
     def __cleanup(self):
         shutil.rmtree(self.job.filename)
+        shutil.rmtree(self.job.id)
         shutil.rmtree(self.job.id+'_logs')
         os.remove(self.job.id+'.zip')
         os.remove(self.job.id+'.h5')
