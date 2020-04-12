@@ -1,10 +1,12 @@
 import os
+import shutil
 import uuid
 from zipfile import ZipFile
-from job import Job
 
 import firebase_admin
 from firebase_admin import credentials, db, storage
+
+from job import Job
 
 
 class FirebaseHelper:
@@ -51,6 +53,13 @@ class FirebaseHelper:
         print("TB logs uploaded")
         return blob.public_url
 
+    def save_serving_model(self, job_id):
+        blob = self.instance.bucket.blob('serving_models/'+job_id)
+        shutil.make_archive(job_id, 'zip', job_id)
+        blob.upload_from_filename(job_id+'.zip')
+        print("Serving model uploaded")
+        return blob.public_url
+
     def save_logs(self, job_id):
         blob = self.instance.bucket.blob('logs/'+job_id)
         blob.upload_from_filename(job_id+'_output.txt')
@@ -81,7 +90,7 @@ class FirebaseHelper:
         jobs = self.get_jobs_enqeued()
         jobs.remove(job)
         self.instance.db.reference('/job_queue').set(jobs)
-        
+
     def get_jobs_enqeued(self):
         jobs = self.instance.db.reference('/job_queue').get()
         return jobs

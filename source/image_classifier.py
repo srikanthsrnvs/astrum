@@ -4,7 +4,7 @@ import random
 import re
 import shutil
 import zipfile
-from job import Job
+
 import numpy as np
 import requests
 import tensorflow as tf
@@ -15,6 +15,7 @@ from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
 
 from custom_lenet import CustomLeNet
 from firebase import FirebaseHelper
+from job import Job
 
 BASE_URL = 'https://astrumdashboard.appspot.com'
 
@@ -29,16 +30,36 @@ class ImageClassifier:
 
     def __save(self):
         self.model.save('{}.h5'.format(self.job.id))
+
+        with tf.keras.backend.get_session() as sess:
+            tf.saved_model.simple_save(
+                sess,
+                './{}/1'.format(self.job.id),
+                inputs={'input_image': self.model.input},
+                outputs={t.name: t for t in self.model.outputs})
+
         self.saved_model_location = self.firebase_helper.save_model(
             self.job.id)
+        self.saved_serving_model_location = self.firebase_helper.save_serving_model(
+            self.job.id)
         self.saved_logs_location = self.firebase_helper.save_logs(self.job.id)
-        self.saved_tb_logs_location = self.firebase_helper.save_tb_logs(self.job.id)
-        self.__notify_backend_for_completion()
+        self.saved_tb_logs_location = self.firebase_helper.save_tb_logs(
+            self.job.id)
+        self.__create_prediction_endpoint()
 
-    def __notify_backend_for_completion(self):
+    def __create_prediction_endpoint(self):
+        response = requests.post(
+            'http://127.0.0.1:8080/predict/'+self.job.id,
+        )
+        prediction_url = response.json().get('url')
+        self.__notify_backend_for_completion(prediction_url)
+
+    def __notify_backend_for_completion(self, prediction_url):
         requests.put(
             BASE_URL+'/jobs/'+self.job.id,
             json={
+                'serving_model': self.saved_serving_model_location,
+                'prediction_url': prediction_url,
                 'model': self.saved_model_location,
                 'logs': self.saved_logs_location,
                 'tb_logs': self.saved_tb_logs_location,
@@ -51,6 +72,7 @@ class ImageClassifier:
     def __cleanup(self):
         shutil.rmtree(self.job.filename)
         shutil.rmtree(self.job.id+'_logs')
+        os.remove(self.job.id+'.zip')
         os.remove(self.job.id+'.h5')
         os.remove(self.job.id+'_output.txt')
         os.remove(self.job.id+'_tensorboard.zip')
@@ -60,7 +82,7 @@ class ImageClassifier:
         self._prepare_hyperparameters()
 
         model = CustomLeNet(self.input_size, self.output_classes,
-                            self.hyperparameters['optimizer'], self.hyperparameters['loss']).model
+                            self.hyperparameters['optimizer'], self.hyperparameters['output_activation'], self.hyperparameters['loss']).model
         train_datagen = ImageDataGenerator(
             rescale=1. / 255,
             horizontal_flip=True,
@@ -109,11 +131,12 @@ class ImageClassifier:
         hyperparameters['decay'] = 0.0
         hyperparameters['optimizer'] = SGD(
             lr=hyperparameters['learning_rate'], momentum=hyperparameters['momentum'])
+        hyperparameters['output_activation'] = 'softmax'
 
         self.hyperparameters = hyperparameters
 
     def _prepare_data(self):
-        
+
         total_img_count = 0
         cumalative_img_height = 0
         cumalative_img_width = 0
@@ -159,12 +182,12 @@ class ImageClassifier:
                 train_img_count += 1
                 img = im['image'].resize((img_size, img_size))
                 img.save(filename+'/train/{}/{}'.format(key,
-                                                       im['name']))
+                                                        im['name']))
             for im in test_imgs:
                 test_img_count += 1
                 img = im['image'].resize((img_size, img_size))
                 img.save(filename+'/test/{}/{}'.format(key,
-                                                      im['name']))
+                                                       im['name']))
             # cleanup
             shutil.rmtree(filename+'/'+key)
 

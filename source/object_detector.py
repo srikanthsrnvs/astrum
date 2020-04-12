@@ -4,11 +4,11 @@ import random
 import re
 import shutil
 import zipfile
-from job import Job
+
 import numpy as np
+import pandas as pd
 import requests
 import tensorflow as tf
-import pandas as pd
 from PIL import Image
 from tensorflow.python import keras
 from tensorflow.python.keras.optimizers import *
@@ -16,6 +16,7 @@ from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
 
 from custom_lenet import CustomLeNet
 from firebase import FirebaseHelper
+from job import Job
 
 BASE_URL = 'https://astrumdashboard.appspot.com'
 
@@ -30,17 +31,36 @@ class ObjectDetector:
 
     def __save(self):
         self.model.save('{}.h5'.format(self.job.id))
+
+        with tf.keras.backend.get_session() as sess:
+            tf.saved_model.simple_save(
+                sess,
+                './{}/1'.format(self.job.id),
+                inputs={'input_image': self.model.input},
+                outputs={t.name: t for t in self.model.outputs})
+
+        self.saved_serving_model_location = self.firebase_helper.save_serving_model(
+            self.job.id)
         self.saved_model_location = self.firebase_helper.save_model(
             self.job.id)
         self.saved_logs_location = self.firebase_helper.save_logs(self.job.id)
         self.saved_tb_logs_location = self.firebase_helper.save_tb_logs(
             self.job.id)
-        self.__notify_backend_for_completion()
+        self.__create_prediction_endpoint()
 
-    def __notify_backend_for_completion(self):
+    def __create_prediction_endpoint(self):
+        response = requests.post(
+            'http://127.0.0.1:8080/predict/'+self.job.id,
+        )
+        prediction_url = response.json().get('url')
+        self.__notify_backend_for_completion(prediction_url)
+
+    def __notify_backend_for_completion(self, prediction_url):
         requests.put(
             BASE_URL+'/jobs/'+self.job.id,
             json={
+                'serving_model': self.saved_serving_model_location,
+                'prediction_url': prediction_url,
                 'model': self.saved_model_location,
                 'logs': self.saved_logs_location,
                 'tb_logs': self.saved_tb_logs_location,
@@ -53,6 +73,7 @@ class ObjectDetector:
     def __cleanup(self):
         shutil.rmtree(self.job.filename)
         shutil.rmtree(self.job.id+'_logs')
+        os.remove(self.job.id+'.zip')
         os.remove(self.job.id+'.h5')
         os.remove(self.job.id+'_output.txt')
         os.remove(self.job.id+'_tensorboard.zip')
