@@ -29,41 +29,28 @@ class FirebaseHelper:
         if not FirebaseHelper.instance:
             FirebaseHelper.instance = FirebaseHelper.__FirebaseHelper()
 
-    def save_model(self, job_id):
+    def save_model(self, job_id, path):
         blob = self.instance.bucket.blob('models/'+job_id)
-        blob.upload_from_filename(job_id+'.h5')
-        print("Model uploaded")
+        blob.upload_from_filename(path)
+        print("Model uploaded to ", blob.public_url)
         return blob.public_url
 
-    def save_tb_logs(self, job_id):
-        blob = self.instance.bucket.blob('tb_logs/'+job_id)
-        zip_name = '{}_tensorboard.zip'.format(job_id)
-        with ZipFile(zip_name, 'w') as zipObj:
-            # Iterate over all the files in directory
-            for folderName, subfolders, filenames in os.walk(job_id+'_logs/'):
-                for filename in filenames:
-                    # create complete filepath of file in directory
-                    filePath = os.path.join(folderName, filename)
-                    # Add file to zip
-                    zipObj.write(filePath)
-
-            # close the Zip File
-            zipObj.close()
-            blob.upload_from_filename(zip_name)
-        print("TB logs uploaded")
+    def save_tb_logs(self, job_id, path):
+        blob = self.instance.bucket.blob('tensorboard/'+job_id)
+        blob.upload_from_filename(path)
+        print("TB logs uploaded to ", blob.public_url)
         return blob.public_url
 
-    def save_serving_model(self, job_id):
+    def save_serving_model(self, job_id, path):
         blob = self.instance.bucket.blob('serving_models/'+job_id)
-        shutil.make_archive(job_id, 'zip', job_id)
-        blob.upload_from_filename(job_id+'.zip')
-        print("Serving model uploaded")
+        blob.upload_from_filename(path)
+        print("Serving model uploaded to ", blob.public_url)
         return blob.public_url
 
-    def save_logs(self, job_id):
+    def save_logs(self, job_id, path):
         blob = self.instance.bucket.blob('logs/'+job_id)
-        blob.upload_from_filename(job_id+'_output.txt')
-        print("Logs uploaded")
+        blob.upload_from_filename(path)
+        print("Logs uploaded to ", blob.public_url)
         return blob.public_url
 
     def get_job_data(self, job_id):

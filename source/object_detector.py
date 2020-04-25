@@ -4,6 +4,7 @@ import random
 import re
 import shutil
 import zipfile
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -17,73 +18,41 @@ from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
 from custom_lenet import CustomLeNet
 from firebase import FirebaseHelper
 from job import Job
-
-BASE_URL = 'https://astrumdashboard.appspot.com'
+from saving_worker import SavingWorker
 
 
 class ObjectDetector:
 
-    def __init__(self, job, log_dir):
+    def __init__(self, job, log_dir, finished_queue, cv):
         self.log_dir = log_dir
+        self.cv = cv
         self.job = job
+        self.finished_queue = finished_queue
         self.hyperparameters = {}
         self.firebase_helper = FirebaseHelper()
+        self.job_files_path = Path(str(Path.home())+'/JobFiles/'+self.job.id)
 
     def __save(self):
-        self.model.save('{}.h5'.format(self.job.id))
+
+        self.model.save(str(self.job_files_path)+'/model.h5')
 
         with tf.keras.backend.get_session() as sess:
             tf.saved_model.simple_save(
                 sess,
-                './{}/1'.format(self.job.id),
+                str(self.job_files_path)+'/ServingModel/1',
                 inputs={'input_image': self.model.input},
-                outputs={t.name: t for t in self.model.outputs})
-
-        self.saved_serving_model_location = self.firebase_helper.save_serving_model(
-            self.job.id)
-        self.saved_model_location = self.firebase_helper.save_model(
-            self.job.id)
-        self.saved_logs_location = self.firebase_helper.save_logs(self.job.id)
-        self.saved_tb_logs_location = self.firebase_helper.save_tb_logs(
-            self.job.id)
-        self.__create_prediction_endpoint()
-
-    def __create_prediction_endpoint(self):
-        response = requests.post(
-            'http://127.0.0.1:8080/predict/'+self.job.id,
-        )
-        prediction_url = response.json().get('url')
-        self.__notify_backend_for_completion(prediction_url)
-
-    def __notify_backend_for_completion(self, prediction_url):
-        requests.put(
-            BASE_URL+'/jobs/'+self.job.id,
-            json={
-                'serving_model': self.saved_serving_model_location,
-                'prediction_url': prediction_url,
-                'model': self.saved_model_location,
-                'logs': self.saved_logs_location,
-                'tb_logs': self.saved_tb_logs_location,
-                'label_map': self.label_map,
-                'status': 2
-            }
-        )
-        self.__cleanup()
-
-    def __cleanup(self):
-        shutil.rmtree(self.job.filename)
-        shutil.rmtree(self.job.id)
-        shutil.rmtree(self.job.id+'_logs')
-        os.remove(self.job.id+'.zip')
-        os.remove(self.job.id+'.h5')
-        os.remove(self.job.id+'_output.txt')
-        os.remove(self.job.id+'_tensorboard.zip')
+                outputs={t.name: t for t in self.model.outputs}
+            )
+        self.finished_queue.append(
+            {'job': self.job, 'label_map': self.label_map})
+        self.cv.notifyAll()
+        shutil.rmtree('./'+self.job.filename)
 
     def build(self):
         self._prepare_data()
         self._prepare_hyperparameters()
 
-        model = CustomLeNet(self.input_size, len(self.output_classes),
+        model = CustomLeNet(len(self.output_classes),
                             self.hyperparameters['optimizer'], self.hyperparameters['output_activation'], self.hyperparameters['loss']).model
         train_datagen = ImageDataGenerator(
             rescale=1. / 255,
@@ -104,6 +73,7 @@ class ObjectDetector:
             y_col=self.label_col_header,
             classmode='categorical',
             classes=self.output_classes,
+            shuffle=True,
             target_size=(self.input_size[0], self.input_size[1]),
             batch_size=self.train_batch_size
         )
@@ -115,6 +85,7 @@ class ObjectDetector:
             y_col=self.label_col_header,
             classmode='categorical',
             classes=self.output_classes,
+            shuffle=True,
             target_size=(self.input_size[0], self.input_size[1]),
             batch_size=self.test_batch_size
         )
@@ -137,10 +108,10 @@ class ObjectDetector:
     def _prepare_hyperparameters(self):
         hyperparameters = {}
         hyperparameters['epochs'] = 100
-        hyperparameters['learning_rate'] = 0.001
+        hyperparameters['learning_rate'] = 0.01
         hyperparameters['loss'] = 'binary_crossentropy'
-        hyperparameters['momentum'] = 0.0
-        hyperparameters['decay'] = 1e-6
+        hyperparameters['momentum'] = 0.9
+        hyperparameters['decay'] = 0
         hyperparameters['optimizer'] = RMSprop(
             lr=hyperparameters['learning_rate'], decay=hyperparameters['decay'])
         hyperparameters['output_activation'] = 'sigmoid'
@@ -175,8 +146,10 @@ class ObjectDetector:
             img_height, img_width = img.size
             cumalative_img_height += img_height
             cumalative_img_width += img_width
-            img = img.resize((224, 224))
+            img = img.resize((299, 299))
             img.save(img_path+'/'+img_name)
+
+        self.input_size = (299, 299, 3)
 
         data_frame = pd.read_csv(filename+'/'+csv_filename)
         sample = data_frame.sample(n=1)
@@ -240,7 +213,6 @@ class ObjectDetector:
             self.test = self.data_frame[train_img_count:]
             self.train_batch_size = min(16, self.train_img_count)
             self.test_batch_size = min(16, self.test_img_count)
-            self.input_size = (224, 224, 3)
 
         # If the data frame contains single filenames for different classes, for eg.
         # __________________________
@@ -267,4 +239,3 @@ class ObjectDetector:
             self.test = self.data_frame[train_img_count:]
             self.train_batch_size = min(16, self.train_img_count)
             self.test_batch_size = min(16, self.test_img_count)
-            self.input_size = (224, 224, 3)

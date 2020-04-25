@@ -6,92 +6,62 @@ import shutil
 import zipfile
 
 import numpy as np
+from pathlib import Path
 import requests
 import tensorflow as tf
 from PIL import Image
 from tensorflow.python import keras
 from tensorflow.python.keras.optimizers import *
 from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
-
+from saving_worker import SavingWorker
 from custom_lenet import CustomLeNet
 from firebase import FirebaseHelper
 from job import Job
 
-BASE_URL = 'https://astrumdashboard.appspot.com'
-
 
 class ImageClassifier:
 
-    def __init__(self, job, log_dir):
+    def __init__(self, job, log_dir, finished_queue, cv):
+        self.cv = cv
         self.log_dir = log_dir
         self.job = job
+        self.finished_queue = finished_queue
         self.hyperparameters = {}
         self.firebase_helper = FirebaseHelper()
+        self.job_files_path = Path(str(Path.home())+'/JobFiles/'+self.job.id)
 
     def __save(self):
-        self.model.save('{}.h5'.format(self.job.id))
-
+        self.model.save(str(self.job_files_path)+'/model.h5')
         with tf.keras.backend.get_session() as sess:
             tf.saved_model.simple_save(
                 sess,
-                './{}/1'.format(self.job.id),
+                str(self.job_files_path)+'/ServingModel/1',
                 inputs={'input_image': self.model.input},
-                outputs={t.name: t for t in self.model.outputs})
-
-        self.saved_model_location = self.firebase_helper.save_model(
-            self.job.id)
-        self.saved_serving_model_location = self.firebase_helper.save_serving_model(
-            self.job.id)
-        self.saved_logs_location = self.firebase_helper.save_logs(self.job.id)
-        self.saved_tb_logs_location = self.firebase_helper.save_tb_logs(
-            self.job.id)
-        self.__create_prediction_endpoint()
-
-    def __create_prediction_endpoint(self):
-        response = requests.post(
-            'http://127.0.0.1:8080/predict/'+self.job.id,
-        )
-        prediction_url = response.json().get('url')
-        self.__notify_backend_for_completion(prediction_url)
-
-    def __notify_backend_for_completion(self, prediction_url):
-        requests.put(
-            BASE_URL+'/jobs/'+self.job.id,
-            json={
-                'serving_model': self.saved_serving_model_location,
-                'prediction_url': prediction_url,
-                'model': self.saved_model_location,
-                'logs': self.saved_logs_location,
-                'tb_logs': self.saved_tb_logs_location,
-                'label_map': self.label_map,
-                'status': 2
-            }
-        )
-        self.__cleanup()
-
-    def __cleanup(self):
-        shutil.rmtree(self.job.filename)
-        shutil.rmtree(self.job.id)
-        shutil.rmtree(self.job.id+'_logs')
-        os.remove(self.job.id+'.zip')
-        os.remove(self.job.id+'.h5')
-        os.remove(self.job.id+'_output.txt')
-        os.remove(self.job.id+'_tensorboard.zip')
+                outputs={t.name: t for t in self.model.outputs}
+            )
+        self.finished_queue.append(
+            {'job': self.job, 'label_map': self.label_map, 'stats': self.stats})
+        self.cv.notifyAll()
+        shutil.rmtree('./'+self.job.filename)
 
     def build(self):
         self._prepare_data()
         self._prepare_hyperparameters()
 
-        model = CustomLeNet(self.input_size, self.output_classes,
+        model = CustomLeNet(self.output_classes,
                             self.hyperparameters['optimizer'], self.hyperparameters['output_activation'], self.hyperparameters['loss']).model
         train_datagen = ImageDataGenerator(
             rescale=1. / 255,
+            width_shift_range=0.2,
+            height_shift_range=0.2,
             horizontal_flip=True,
             vertical_flip=True
         )
 
         test_datagen = ImageDataGenerator(
             rescale=1. / 255,
+            width_shift_range=0.2,
+            height_shift_range=0.2,
             horizontal_flip=True,
             vertical_flip=True
         )
@@ -111,7 +81,7 @@ class ImageClassifier:
         tensorboard_callback = keras.callbacks.TensorBoard(
             log_dir=self.log_dir+'/scalars/')
 
-        model.fit_generator(
+        stats = model.fit_generator(
             train_generator,
             steps_per_epoch=self.train_img_count // self.train_batch_size,
             epochs=self.hyperparameters['epochs'],
@@ -119,6 +89,24 @@ class ImageClassifier:
             validation_steps=self.test_img_count // self.test_batch_size,
             callbacks=[tensorboard_callback]
         )
+
+        stats = stats.history
+
+        train_loss = stats.get('loss', '')[-1]
+        test_loss = stats.get('val_loss', '')[-1]
+        train_acc = stats.get('acc', '')[-1]
+        test_acc = stats.get('val_acc', '')[-1]
+
+        self.stats = {
+            'train': {
+                'accuracy': train_acc,
+                'loss': train_loss
+            },
+            'test': {
+                'accuracy': test_acc,
+                'loss': test_loss
+            }
+        }
         self.model = model
         self.label_map = train_generator.class_indices
         self.__save()
@@ -126,9 +114,9 @@ class ImageClassifier:
     def _prepare_hyperparameters(self):
         hyperparameters = {}
         hyperparameters['epochs'] = 100
-        hyperparameters['learning_rate'] = 0.1
+        hyperparameters['learning_rate'] = 0.01
         hyperparameters['loss'] = 'categorical_crossentropy'
-        hyperparameters['momentum'] = 0.0
+        hyperparameters['momentum'] = 0.9
         hyperparameters['decay'] = 0.0
         hyperparameters['optimizer'] = SGD(
             lr=hyperparameters['learning_rate'], momentum=hyperparameters['momentum'])
@@ -165,7 +153,7 @@ class ImageClassifier:
         # img_size = int(max(cumalative_img_height/total_img_count,
         #                cumalative_img_width/total_img_count))
         # TODO: Image size is constant here, need to make dynamic
-        img_size = 224
+        img_size = 299
 
         # Save all images by splitting into /test & /train
         train_img_count = 0

@@ -21,14 +21,18 @@ cors = CORS(app, resources={r"/*": {"origins": "*"}})
 app.config['CORS_HEADERS'] = 'Content-Type'
 
 
-BASEURL = 'https://astrumdashboard.appspot.com'
+BASEURL = 'https://api.astrum.ai'
 spun_tf_servers = []
-next_port = 5000
+next_port = 5010
 
 
 @app.route('/serve/<job_id>', methods=['POST'])
 def serve(job_id):
+    global BASEURL
+    global spun_tf_servers
+    global next_port
 
+    # try:
     job = FirebaseHelper().get_job_data(job_id)
 
     models_path = str(Path.home())+'/models/'+job_id
@@ -42,21 +46,28 @@ def serve(job_id):
     port = str(next_port)
     next_port += 1
 
-    spun_tf_servers.append(subprocess.Popen(["tensorflow_model_server "
-                                             "--model_base_path={} "
-                                             "--rest_api_port={} --model_name={}".format(models_path, port, job_id)],
-                                            stdout=subprocess.DEVNULL,
-                                            shell=True,
-                                            preexec_fn=os.setsid))
+    try:
+        spun_tf_servers.append(subprocess.Popen(["tensorflow_model_server "
+                                                 "--model_base_path={} "
+                                                 "--rest_api_port={} --model_name={}".format(models_path+'/ServingModel', port, job_id)],
+                                                stdout=subprocess.DEVNULL,
+                                                shell=True,
+                                                preexec_fn=os.setsid))
+    finally:
+        prediction_url = 'http://localhost:{}/v1/models/{}:predict'.format(
+            port, job_id)
 
-    prediction_url = 'http://localhost:{}/v1/models/{}:predict'.format(
-        port, job_id)
+        return jsonify({'status': 'success', 'url': prediction_url}), 200
 
-    return jsonify({'status': 'success', 'url': prediction_url}), 200
+    # except:
+    #     return jsonify({'status': 'error', 'reason': "serving error"}), 400
 
 
 @app.route('/predict/<job_id>', methods=['POST'])
 def predict(job_id):
+    global BASEURL
+    global spun_tf_servers
+    global next_port
 
     job = FirebaseHelper().get_job_data(job_id)
 
@@ -66,7 +77,7 @@ def predict(job_id):
         if not img:
             return jsonify({'error': "No image was provided"}), 400
 
-        img = image.img_to_array(image.load_img(img, target_size=(224, 224)))
+        img = image.img_to_array(image.load_img(img, target_size=(299, 299))) / 255.
 
         img = img.astype('float16')
 
@@ -82,7 +93,7 @@ def predict(job_id):
         pred = json.loads(r.content.decode('utf-8'))
         print(pred)
         # Returning JSON response to the frontend
-        return "", 200
+        return jsonify(pred), 200
 
 
 @app.errorhandler(http_client.INTERNAL_SERVER_ERROR)
