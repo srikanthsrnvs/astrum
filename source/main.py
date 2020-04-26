@@ -19,12 +19,12 @@ def spin_saving_worker(job_queue, firebase_helper, cv):
 
 
 def spin_builder(finished_queue, firebase_helper, cv):
-    # while True:
+    while True:
         jobs_enqeued = firebase_helper.get_jobs_enqeued()
         if jobs_enqeued:
             with cv:
                 job = jobs_enqeued.pop(0)
-                # firebase_helper.pop_job(job)
+                firebase_helper.pop_job(job)
 
                 if job:
                     job = firebase_helper.get_job_data(job)

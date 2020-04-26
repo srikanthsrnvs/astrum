@@ -4,19 +4,20 @@ import random
 import re
 import shutil
 import zipfile
+from pathlib import Path
 
 import numpy as np
-from pathlib import Path
 import requests
 import tensorflow as tf
 from PIL import Image
 from tensorflow.python import keras
 from tensorflow.python.keras.optimizers import *
 from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
-from saving_worker import SavingWorker
+
 from custom_lenet import CustomLeNet
 from firebase import FirebaseHelper
 from job import Job
+from saving_worker import SavingWorker
 
 
 class ImageClassifier:
@@ -92,10 +93,10 @@ class ImageClassifier:
 
         stats = stats.history
 
-        train_loss = stats.get('loss', '')[-1]
-        test_loss = stats.get('val_loss', '')[-1]
-        train_acc = stats.get('acc', '')[-1]
-        test_acc = stats.get('val_acc', '')[-1]
+        train_loss = str(stats.get('loss', '')[-1])
+        test_loss = str(stats.get('val_loss', '')[-1])
+        train_acc = str(stats.get('acc', '')[-1])
+        test_acc = str(stats.get('val_acc', '')[-1])
 
         self.stats = {
             'train': {

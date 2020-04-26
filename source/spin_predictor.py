@@ -23,7 +23,7 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 
 BASEURL = 'https://api.astrum.ai'
 spun_tf_servers = []
-next_port = 5010
+next_port = 5000
 
 
 @app.route('/serve/<job_id>', methods=['POST'])
@@ -53,6 +53,8 @@ def serve(job_id):
                                                 stdout=subprocess.DEVNULL,
                                                 shell=True,
                                                 preexec_fn=os.setsid))
+    except:
+        return jsonify({'status': 'error', 'reason': 'Could not serve the model'})
     finally:
         prediction_url = 'http://localhost:{}/v1/models/{}:predict'.format(
             port, job_id)
@@ -75,6 +77,7 @@ def predict(job_id):
 
         img = request.files.get('image', "")
         if not img:
+            print("image not provided ", request.files)
             return jsonify({'error': "No image was provided"}), 400
 
         img = image.img_to_array(image.load_img(img, target_size=(299, 299))) / 255.
@@ -90,10 +93,10 @@ def predict(job_id):
         r = requests.post(job.prediction_url, json=payload)
 
         # Decoding results from TensorFlow Serving server
-        pred = json.loads(r.content.decode('utf-8'))
-        print(pred)
+        predictions = json.loads(r.content.decode('utf-8'))
+        predictions['label_map'] = job.label_map
         # Returning JSON response to the frontend
-        return jsonify(pred), 200
+        return jsonify(predictions), 200
 
 
 @app.errorhandler(http_client.INTERNAL_SERVER_ERROR)
