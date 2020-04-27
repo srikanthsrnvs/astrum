@@ -46,7 +46,7 @@ class SavingWorker:
 
     def __create_prediction_endpoint(self):
         response = requests.post(
-            'http://127.0.0.1:8080/serve/'+self.job.id,
+            'http://predict.astrum.ai/serve/'+self.job.id,
         )
         if response.status_code == 200:
             self.prediction_url = response.json().get('url')

@@ -5,4 +5,5 @@ pillow==7.1.1
 imageio==2.8.0
 scipy==1.4.1
 flask==1.1.2
-requests=2.23.0
+requests==2.23.0
+Flask-Cors==3.0.8
