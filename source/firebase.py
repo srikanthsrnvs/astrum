@@ -54,7 +54,11 @@ class FirebaseHelper:
         return blob.public_url
 
     def get_job_data(self, job_id):
+        if not job_id:
+            return False
         job_data = self.instance.db.reference('/jobs/'+job_id).get()
+        if not job_data:
+            return False
         job_data['job_id'] = job_id
         dataset_id = job_data.get('dataset', "")
         dataset_data = self.instance.db.reference(
@@ -66,11 +70,14 @@ class FirebaseHelper:
         # bucket_name = "your-bucket-name"
         # source_blob_name = "storage-object-name"
         # destination_file_name = "local/path/to/file"
-
-        file_dir = link.split('/')[-2]
-        file_name = link.split('/')[-1]
-        blob = self.instance.bucket.blob('{}/{}'.format(file_dir, file_name))
-        blob.download_to_filename(destination_file_name)
+        try:
+            file_dir = link.split('/')[-2]
+            file_name = link.split('/')[-1]
+            blob = self.instance.bucket.blob('{}/{}'.format(file_dir, file_name))
+            blob.download_to_filename(destination_file_name)
+            return True, None, None
+        except IndexError:
+            return False, 'Bad link recieved when attempting to download the file: {}'.format(link)
 
     def pop_job(self, job):
         self.instance.db.reference('/jobs/'+job+'/status').set(1)
