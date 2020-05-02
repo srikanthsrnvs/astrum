@@ -44,9 +44,10 @@ def serve(job_id):
     models_zip_path = models_path+'.zip'
 
     # Now download the files. Returned is a tuple containing (Success, Reason)
-    download = FirebaseHelper().get_file(job.serving_model, models_zip_path):
-        if not download[0]:
-            return jsonify({'status': 'error', 'reason': download[1]}), 400
+    download = FirebaseHelper().get_file(job.serving_model, models_zip_path)
+    
+    if not download[0]:
+        return jsonify({'status': 'error', 'reason': download[1]}), 400
 
     with zipfile.ZipFile(models_zip_path, 'r') as zip_ref:
         zip_ref.extractall(models_path)
