@@ -32,13 +32,22 @@ def serve(job_id):
     global spun_tf_servers
     global next_port
 
-    # try:
+    # Get the job associated with the jobid in the URL
     job = FirebaseHelper().get_job_data(job_id)
 
+    # If the jobid does not correspond to a job, we handle the error
+    if not job:
+        return jsonify({'status': 'error', 'reason': 'No job under the provided jobID'}), 400
+
+    # We set the paths where we can download the model locally and save it
     models_path = str(Path.home())+'/models/'+job_id
     models_zip_path = models_path+'.zip'
 
-    FirebaseHelper().get_file(job.serving_model, models_zip_path)
+    # Now download the files. Returned is a tuple containing (Success, Reason)
+    download = FirebaseHelper().get_file(job.serving_model, models_zip_path):
+        if not download[0]:
+            return jsonify({'status': 'error', 'reason': download[1]}), 400
+
     with zipfile.ZipFile(models_zip_path, 'r') as zip_ref:
         zip_ref.extractall(models_path)
     os.remove(models_zip_path)
@@ -61,9 +70,6 @@ def serve(job_id):
 
         return jsonify({'status': 'success', 'url': prediction_url}), 200
 
-    # except:
-    #     return jsonify({'status': 'error', 'reason': "serving error"}), 400
-
 
 @app.route('/predict/<job_id>', methods=['POST'])
 def predict(job_id):
@@ -71,7 +77,12 @@ def predict(job_id):
     global spun_tf_servers
     global next_port
 
+    # Get the job associated with the jobid in the URL
     job = FirebaseHelper().get_job_data(job_id)
+
+    # If the jobid does not correspond to a job, we handle the error
+    if not job:
+        return jsonify({'status': 'error', 'reason': 'No job under the provided jobID'}), 400
 
     if job.type == 'image_classification' or 'object_detection':
 
@@ -80,7 +91,8 @@ def predict(job_id):
             print("image not provided ", request.files)
             return jsonify({'error': "No image was provided"}), 400
 
-        img = image.img_to_array(image.load_img(img, target_size=(299, 299))) / 255.
+        img = image.img_to_array(image.load_img(
+            img, target_size=(299, 299))) / 255.
 
         img = img.astype('float16')
 
