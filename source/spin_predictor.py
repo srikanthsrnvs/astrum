@@ -31,7 +31,7 @@ def serve(job_id):
     global BASEURL
     global spun_tf_servers
     global next_port
-
+    
     # Get the job associated with the jobid in the URL
     job = FirebaseHelper().get_job_data(job_id)
 
@@ -45,7 +45,7 @@ def serve(job_id):
 
     # Now download the files. Returned is a tuple containing (Success, Reason)
     download = FirebaseHelper().get_file(job.serving_model, models_zip_path)
-    
+
     if not download[0]:
         return jsonify({'status': 'error', 'reason': download[1]}), 400
 
