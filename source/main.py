@@ -52,8 +52,6 @@ if __name__ == "__main__":
     saver = threading.Thread(target=spin_saving_worker, args=(
         job_queue, firebase_helper, condition), daemon=True)
 
-    # builder = threading.Thread(target=spin_builder, args=(job_queue, firebase_helper))
-
     saver.start()
 
     spin_builder(job_queue, firebase_helper, condition)
