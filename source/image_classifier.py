@@ -115,12 +115,12 @@ class ImageClassifier:
     def _prepare_hyperparameters(self):
         hyperparameters = {}
         hyperparameters['epochs'] = 100
-        hyperparameters['learning_rate'] = 0.01
+        hyperparameters['learning_rate'] = 0.001
         hyperparameters['loss'] = 'categorical_crossentropy'
         hyperparameters['momentum'] = 0.9
         hyperparameters['decay'] = 0.0
-        hyperparameters['optimizer'] = SGD(
-            lr=hyperparameters['learning_rate'], momentum=hyperparameters['momentum'])
+        hyperparameters['optimizer'] = Adam(
+            lr=hyperparameters['learning_rate'])
         hyperparameters['output_activation'] = 'softmax'
 
         self.hyperparameters = hyperparameters
